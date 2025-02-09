@@ -30,7 +30,7 @@ logging.basicConfig(
 # ===============================
 # Конфигурация бота
 # ===============================
-BOT_TOKEN = "7881397083:AAHOs_B0cDLYFUWYU67udqSJ6LF8PCphneA"
+BOT_TOKEN = ""
 MESS_MAX_LENGTH = 4096
 
 bot = Bot(token=BOT_TOKEN)
