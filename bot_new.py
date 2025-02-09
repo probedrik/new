@@ -50,7 +50,7 @@ except FileNotFoundError:
     logging.error("Ошибка: файлы не найдены.")
     exit()
 except KeyError as e:
-    logging.error(f"Ошибка в структуре Excel: {e}")
+    logging.error("Ошибка в структуре Excel: {}".format(e))
     exit()
 
 # Словарь соответствия сокращений книг
@@ -79,41 +79,39 @@ user_current_chapter = {}
 # ===============================
 
 
-async def get_chapter_gospel(book: int, chapter: int) -> str:
-    url = f"https://justbible.ru/api/bible?translation=rst&book={
-        book}&chapter={chapter}"
+async def get_chapter_gospel(book, chapter):
+    url = "https://justbible.ru/api/bible?translation=rst&book={}&chapter={}".format(book, chapter)
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(url, timeout=10) as response:
                 response.raise_for_status()
                 data = await response.json()
     except Exception as e:
-        logging.error(f"API Error: {e}")
-        return f"Ошибка: {e}"
+        logging.error("API Error: {}".format(e))
+        return "Ошибка: {}".format(e)
 
     verses = [v for k, v in data.items() if k != "info"]
     testament = "Ветхий завет" if book < 40 else "Новый завет"
-    text = f"{testament}. {data['info']['book']} {
-        chapter}:\n{' '.join(verses)}"
+    text = "{}. {}:\n{}".format(testament, data['info']['book'], chapter, ' '.join(verses))
 
     return text  # Вернем полный текст для разбиения позже
 
 
-async def get_random_verse_rbo() -> str:
+async def get_random_verse_rbo():
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get("https://justbible.ru/api/random?translation=rbo", timeout=10) as response:
                 data = await response.json()
-        return f"{data['info']} - {data['verse']}"
+        return "{} - {}".format(data['info'], data['verse'])
     except Exception as e:
-        logging.error(f"Random verse error: {e}")
+        logging.error("Random verse error: {}".format(e))
         return "Не удалось получить стих"
 
 
 # ===============================
 # Вспомогательная функция для разбивки длинных сообщений
 # ===============================
-def split_text(text: str, max_length: int = MESS_MAX_LENGTH) -> list[str]:
+def split_text(text, max_length=MESS_MAX_LENGTH):
     """
     Разбивает длинный текст на части, не превышающие максимальную длину.
     Старается сохранить целостность абзацев.
@@ -145,7 +143,7 @@ def split_text(text: str, max_length: int = MESS_MAX_LENGTH) -> list[str]:
 # ===============================
 
 
-def create_book_keyboard(chat_id: int, page: int = 0, per_page: int = 10) -> InlineKeyboardMarkup:
+def create_book_keyboard(chat_id, page=0, per_page=10):
     buttons = []
     start = page * per_page
     end = start + per_page
@@ -155,7 +153,7 @@ def create_book_keyboard(chat_id: int, page: int = 0, per_page: int = 10) -> Inl
         buttons.append([
             InlineKeyboardButton(
                 text=book_names[i],
-                callback_data=f"select_book_{book_values[i]}"
+                callback_data="select_book_{}".format(book_values[i])
             )
         ])
 
@@ -165,14 +163,14 @@ def create_book_keyboard(chat_id: int, page: int = 0, per_page: int = 10) -> Inl
         nav_buttons.append(
             InlineKeyboardButton(
                 text="⬅️ Назад",
-                callback_data=f"nav_page_{page-1}"
+                callback_data="nav_page_{}".format(page-1)
             )
         )
     if end < len(book_names):
         nav_buttons.append(
             InlineKeyboardButton(
                 text="➡️ Вперед",
-                callback_data=f"nav_page_{page+1}"
+                callback_data="nav_page_{}".format(page+1)
             )
         )
 
@@ -182,7 +180,7 @@ def create_book_keyboard(chat_id: int, page: int = 0, per_page: int = 10) -> Inl
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def create_next_button() -> InlineKeyboardMarkup:
+def create_next_button():
     return InlineKeyboardMarkup(
         inline_keyboard=[[
             InlineKeyboardButton(
@@ -193,7 +191,7 @@ def create_next_button() -> InlineKeyboardMarkup:
     )
 
 
-def create_reading_buttons(reading_str: str) -> InlineKeyboardMarkup:
+def create_reading_buttons(reading_str):
     buttons = []
     for part in reading_str.split(";"):
         part = part.strip()
@@ -216,19 +214,19 @@ def create_reading_buttons(reading_str: str) -> InlineKeyboardMarkup:
                 for chapter in range(start, end+1):
                     buttons.append([
                         InlineKeyboardButton(
-                            text=f"{book_code} {chapter}",
-                            callback_data=f"daily_{book_id}_{chapter}"
+                            text="{} {}".format(book_code, chapter),
+                            callback_data="daily_{}_{}".format(book_id, chapter)
                         )
                     ])
             else:
                 buttons.append([
                     InlineKeyboardButton(
-                        text=f"{book_code} {chapters}",
-                        callback_data=f"daily_{book_id}_{chapters}"
+                        text="{} {}".format(book_code, chapters),
+                        callback_data="daily_{}_{}".format(book_id, chapters)
                     )
                 ])
         except Exception as e:
-            logging.error(f"Error parsing reading: {e}")
+            logging.error("Error parsing reading: {}".format(e))
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -238,7 +236,7 @@ def create_reading_buttons(reading_str: str) -> InlineKeyboardMarkup:
 
 
 @dp.message(Command("start"))
-async def start(message: types.Message):
+async def start(message):
     kb = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="Выбрать книгу, главу")],
@@ -251,7 +249,7 @@ async def start(message: types.Message):
 
 
 @dp.message(F.text == "Выбрать книгу, главу")
-async def book_selection(message: types.Message):
+async def book_selection(message):
     user_page[message.chat.id] = 0
     await message.answer(
         "Выберите книгу:",
@@ -260,18 +258,18 @@ async def book_selection(message: types.Message):
 
 
 @dp.message(F.text == "Случайные главы")
-async def random_verse(message: types.Message):
+async def random_verse(message):
     text = await get_random_verse_rbo()
     await message.answer(text)
 
 
 @dp.message(F.text == "Что читать сегодня")
-async def daily_reading(message: types.Message):
+async def daily_reading(message):
     today = datetime.now().strftime("%Y-%m-%d")
     try:
         plan = df1[df1["day"] == today].iloc[0]
         await message.answer(
-            f"Чтение на {today}:",
+            "Чтение на {}:".format(today),
             reply_markup=create_reading_buttons(plan["book_list"])
         )
     except IndexError:
@@ -283,14 +281,14 @@ async def daily_reading(message: types.Message):
 
 
 @dp.callback_query(F.data.startswith("select_book_"))
-async def book_selected(callback: types.CallbackQuery):
+async def book_selected(callback):
     book_id = int(callback.data.split("_")[2])
     user_chosen_book[callback.message.chat.id] = book_id
     await callback.message.answer("Введите номер главы:")
 
 
 @dp.callback_query(F.data.startswith("nav_page_"))
-async def page_navigation(callback: types.CallbackQuery):
+async def page_navigation(callback):
     page = int(callback.data.split("_")[2])
     chat_id = callback.message.chat.id
     user_page[chat_id] = page
@@ -300,7 +298,7 @@ async def page_navigation(callback: types.CallbackQuery):
 
 
 @dp.callback_query(F.data == "next_chapter")
-async def next_chapter(callback: types.CallbackQuery):
+async def next_chapter(callback):
     chat_id = callback.message.chat.id
     if chat_id not in user_chosen_book or chat_id not in user_current_chapter:
         return await callback.answer("Сначала выберите книгу и главу")
@@ -318,7 +316,7 @@ async def next_chapter(callback: types.CallbackQuery):
 
 
 @dp.callback_query(F.data.startswith("daily_"))
-async def daily_selected(callback: types.CallbackQuery):
+async def daily_selected(callback):
     _, book_id, chapter = callback.data.split("_")
     text = await get_chapter_gospel(int(book_id), int(chapter))
 
@@ -329,7 +327,7 @@ async def daily_selected(callback: types.CallbackQuery):
 
 
 @dp.message(F.text.isdigit())
-async def chapter_input(message: types.Message):
+async def chapter_input(message):
     chat_id = message.chat.id
     if chat_id not in user_chosen_book:
         return
@@ -345,7 +343,7 @@ async def chapter_input(message: types.Message):
 
         await message.answer("Выберите действие:", reply_markup=create_next_button())
     except Exception as e:
-        await message.answer(f"Ошибка: {e}")
+        await message.answer("Ошибка: {}".format(e))
 
 
 # ===============================
